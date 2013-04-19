@@ -205,8 +205,10 @@ public class CityMarker extends AbstractMarker {
 		if(crossOver(mouseX, mouseY, markerpos.x, markerpos.y)){
 			this.comparebox = false;
 		}
-		if(compareOver(mouseX, mouseY, markerpos.x, markerpos.y)){
-			this.compareOn = ! this.compareOn;
+		if(comparebox){
+			if(compareOver(mouseX, mouseY, markerpos.x, markerpos.y)){
+				this.compareOn = ! this.compareOn;
+			}
 		}
 	}
 	

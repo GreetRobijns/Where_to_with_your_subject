@@ -5,6 +5,7 @@ import java.util.List;
 
 import Elements.Association;
 import Elements.City;
+import Elements.Paper;
 import Elements.Person;
 
 import de.fhpotsdam.unfolding.marker.AbstractMarker;
@@ -16,26 +17,28 @@ public class CityMarker extends AbstractMarker {
 
 	List<Person> lakmembers;
 	List<Person> edmmembers;
+	List<Paper> lakpapers;
+	List<Paper> edmpapers;
 	String name;
 	City city;
 	boolean comparebox;
 	boolean compareOn;
 	List<Association> associations;
 
-	public CityMarker(Association association,List<Person> lakmembers, List<Person> edmmembers) {
+	public CityMarker(Association association, List<Paper> lakpapers, List<Paper> edmpapers) {
 		super(association.getCity().getLocation());
-		if(lakmembers != null)
-			this.lakmembers = lakmembers;
-		else
-			this.lakmembers = new ArrayList<Person>();
-		if(edmmembers != null)
-			this.edmmembers = edmmembers;
-		else
-			this.edmmembers = new ArrayList<Person>();
 		this.city = association.getCity();
 		this.id = this.city.getName();
 		this.comparebox = false;
 		this.compareOn = false;
+		if(lakpapers != null)
+			this.lakpapers = lakpapers;
+		else
+			this.lakpapers = new ArrayList<Paper>();
+		if(edmpapers != null)
+			this.edmpapers = edmpapers;
+		else
+			this.edmpapers = new ArrayList<Paper>();
 		associations = new ArrayList<Association>();
 		associations.add(association);
 
@@ -51,8 +54,6 @@ public class CityMarker extends AbstractMarker {
 
 	public void drawCompareBox(boolean comparebox){
 		this.comparebox = comparebox;
-		System.out.println("X: " + location.x);
-		System.out.println("Y: " + location.y);
 	}
 	
 	public boolean getCompareOn(){
@@ -68,15 +69,20 @@ public class CityMarker extends AbstractMarker {
 	}
 
 	public void addLAKMembers(List<Person> lakmembers){
-//		for(Person person: lakmembers){
-//			this.lakmembers.add(person);
-//		}
 		this.lakmembers.addAll(lakmembers);
 	}
 
 	public void addEDMMembers(List<Person> edmmembers){
 		this.edmmembers.addAll(edmmembers);
 	}	
+
+	public void addLAKPapers(List<Paper> lakpapers){
+		this.lakpapers.addAll(lakpapers);
+	}
+
+	public void addEDMPapers(List<Paper> edmpapers){
+		this.edmpapers.addAll(edmpapers);
+	}
 
 	public List<Person> getLAKMembers(){
 		return lakmembers;
@@ -85,12 +91,20 @@ public class CityMarker extends AbstractMarker {
 	public List<Person> getEDMMembers(){
 		return edmmembers;
 	}
+	
+	public List<Paper> getLAKPapers(){
+		return lakpapers;
+	}
+	
+	public List<Paper> getEDMPapers(){
+		return edmpapers;
+	}
 
 	@Override
 	public void draw(PGraphics pg, float x, float y) {
 		pg.pushStyle();
 		pg.pushMatrix();
-		pg.fill(255, 0, 0);
+		pg.fill(0, 255, 0);
 		pg.ellipseMode(PConstants.CENTER);
 		pg.stroke(128,138,135);
 		pg.strokeWeight(2);
@@ -125,20 +139,19 @@ public class CityMarker extends AbstractMarker {
 			int max = Math.max(Math.max(getLAK2011(), getLAK2012()), Math.max(getEDM2011(), getEDM2012()));
 			double factor = 0;
 			if(max > 0) factor = 100/max;
-//			System.out.println(factor);
-			pg.line(20, 0, 20, (float) (-getLAK2011()*factor));
-//			System.out.println(getLAK2011());
-			pg.line(90, 0, 90, (float) (-getLAK2012()*factor));
-//			System.out.println(getLAK2012());
-			pg.stroke(0,0,255);
-			pg.line(50, 0, 50, (float) (-getEDM2011()*factor));
-//			System.out.println(getEDM2011());
-			pg.line(120, 0, 120, (float) (-getEDM2012()*factor));
-//			System.out.println(getEDM2012());
+			if(getLAK2011()>0) 
+				pg.rect(20,-11,20, (float) (-11-getLAK2011()*factor), 1,1,0,0);
+			if(getLAK2012()>0)
+				pg.rect(90, -11, 90, (float) (-11-getLAK2012()*factor),1,1,0,0);
+			pg.stroke(255, 255, 0);
+			if(getEDM2011()>0)
+				pg.rect(50, -11, 50, (float) (-11-getEDM2011()*factor),1,1,0,0);
+			if(getEDM2012()>0)
+				pg.rect(120, -11, 120, (float) (-11-getEDM2012()*factor),1,1,0,0);
 			pg.fill(0,0,0);
 			pg.popMatrix();
 			pg.text(max, 15,-120);
-			pg.text("#persons", 15, -135);
+			pg.text("#papers", 15, -135);
 			pg.textSize(30);
 			pg.text(city.getName(),30,-210);
 			pg.textSize(22);
@@ -156,20 +169,22 @@ public class CityMarker extends AbstractMarker {
 			pg.textSize(15);
 			String personsstr = "";
 			int count2 = 0;
-			for(Person lak: lakmembers){
-//				System.out.println(lak.getName());
-				count2 ++;
-				if(count2 < 5 && !personsstr.contains(lak.getName())){
-					personsstr += lak.getName();
-					personsstr += ", ";					
+			for(Paper lakpap: lakpapers){
+				for(Person lak: lakpap.getMakers()){
+					count2 ++;
+					if(count2 < 5 && !personsstr.contains(lak.getName())){
+						personsstr += lak.getName();
+						personsstr += ", ";					
+					}
 				}
 			}
-			for(Person edm: edmmembers){
-//				System.out.println(edm.getName());
-				count2 ++;
-				if(count2 < 5 && !personsstr.contains(edm.getName())){
-					personsstr += edm.getName();
-					personsstr += ", ";					
+			for(Paper edmpap: edmpapers){
+				for(Person edm: edmpap.getMakers()){
+					count2 ++;
+					if(count2 < 5 && !personsstr.contains(edm.getName())){
+						personsstr += edm.getName();
+						personsstr += ", ";					
+					}	
 				}
 			}
 			if(personsstr.length() > 0) personsstr= personsstr.substring(0, personsstr.length() - 2);
@@ -232,15 +247,10 @@ public class CityMarker extends AbstractMarker {
 		return over;
 	}
 	
-//	@Override
-//	public String toString() {
-//		return ("Marker at" + association.getCity().getLocation() + " from " + association + " with " + lakmembers.size() + " LAK members and " + edmmembers.size() + "EDM members.");
-//	}
-
 	public int getEDM2011(){
 		int count = 0;
-		for(Person person: edmmembers){
-			if(person.isAttendingEDM2011()){
+		for(Paper paper: edmpapers){
+			if(paper.wasForEDM2011()){
 				count ++;
 			}
 		}
@@ -249,8 +259,8 @@ public class CityMarker extends AbstractMarker {
 
 	public int getEDM2012(){
 		int count = 0;
-		for(Person person: edmmembers){
-			if(person.isAttendingEDM2012()){
+		for(Paper paper: edmpapers){
+			if(paper.wasForEDM2012()){
 				count ++;
 			}
 		}
@@ -259,8 +269,8 @@ public class CityMarker extends AbstractMarker {
 
 	public int getLAK2011(){
 		int count = 0;
-		for(Person person: lakmembers){
-			if(person.isAttendingLAK2011()){
+		for(Paper paper: lakpapers){
+			if(paper.wasForLAK2011()){
 				count ++;
 			}
 		}
@@ -269,14 +279,11 @@ public class CityMarker extends AbstractMarker {
 
 	public int getLAK2012(){
 		int count = 0;
-		for(Person person: lakmembers){
-			if(person.isAttendingLAK2012()){
+		for(Paper paper: lakpapers){
+			if(paper.wasForLAK2012()){
 				count ++;
 			}
 		}
 		return count;
 	}
-
-
-
 }

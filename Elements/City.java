@@ -24,11 +24,10 @@ public class City {
 		this.country = country;
 		associatedPeople = new ArrayList<Person>();
 		ToponymSearchCriteria searchCriteria = new ToponymSearchCriteria();
-		searchCriteria.setQ(name);
-		if(name.equals("Worcester")){
-			this.location = new Location(42.2625, -71.8028);
+		if(country.equals("USA")) {
+			name = name + "," + country;
 		}
-		else{
+		searchCriteria.setQ(name);
 		try {
 			ToponymSearchResult searchResult = WebService.search(searchCriteria);
 			this.location = new Location(searchResult.getToponyms().get(0).getLatitude(), searchResult.getToponyms().get(0).getLongitude());
@@ -36,9 +35,8 @@ public class City {
 		catch(Exception e) {
 			e.printStackTrace();
 		}
-		}
 		if(this.location == null){
-			location = new Location(0, 0);
+			this.location = new Location(0, 0);
 		}
 	}
 	

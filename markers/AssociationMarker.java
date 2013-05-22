@@ -43,7 +43,6 @@ public class AssociationMarker extends AbstractMarker{
 		if(selected){
 			pg.color(100);
 			pg.text(name,x,y-10);
-			
 			pg.fill(255,255,255);
 			pg.stroke(128,138,135);
 			pg.strokeWeight(5);
@@ -54,14 +53,6 @@ public class AssociationMarker extends AbstractMarker{
 			pg.line(x+50, y-20, x+50, y-140);
 			pg.line(x+50, y-20, x+180, y-20);
 		}
-		
-		
-//		if(comparebox){
-//			pg.fill(highlightColor);
-//			pg.stroke(highlightStrokeColor);
-//			pg.rectMode(PConstants.CORNER);
-//			pg.rect(x, y, x + 100, y - 100);
-//		}
 		pg.popStyle();
 	}
 

@@ -1,13 +1,11 @@
 package map;
 import processing.core.PApplet;
+import processing.core.PFont;
 import de.fhpotsdam.unfolding.UnfoldingMap;
 import de.fhpotsdam.unfolding.data.Feature;
 import de.fhpotsdam.unfolding.data.GeoJSONReader;
-import de.fhpotsdam.unfolding.geo.Location;
 import de.fhpotsdam.unfolding.marker.Marker;
 import de.fhpotsdam.unfolding.utils.MapUtils;
-
-import markers.AssociationMarker;
 import markers.CityMarker;
 import org.geonames.WebService;
 
@@ -25,6 +23,7 @@ import com.hp.hpl.jena.sparql.vocabulary.FOAF;
 import com.hp.hpl.jena.util.FileManager;
 import com.hp.hpl.jena.vocabulary.DC;
 
+import java.awt.Font;
 import java.io.*;
 
 import java.util.*;
@@ -45,11 +44,12 @@ public class LAK extends PApplet {
 	
 	ArrayList<CityMarker> attendingCityMarkers; //List of county markers (for the attending countries)
 	List<Marker> countryMarkers; //List of country markers
+	List<Marker> nbPapersMarkers;
 	List<Marker> associationMarkers; //List of association markers
 	List<Marker> activeCountryMarkers; //List of active country markers
-	List<Marker> activeAssociationMarkers; //List of active association markers
-	List<CityMarker> activeCityMarkers; //List of the active city markers
+	List<Marker> activeCityMarkers; //List of the active city markers
 	UnfoldingMap map; //The map
+	UnfoldingMap mapOverview; // The overviewMap
 	boolean compare; //Whether of not the compare-view is drawn
 	List<CityMarker> compareMarkers;
 
@@ -69,9 +69,10 @@ public class LAK extends PApplet {
 		attendingCityMarkers = new ArrayList<CityMarker>();
 		compareMarkers = new ArrayList<CityMarker>();
 		map = new UnfoldingMap(this);
+		mapOverview = new UnfoldingMap(this, "overview", 0, 400, 250, 250);
 		this.compare = false;
 		//Connect to geoNames
-		WebService.setUserName("greetcapsel");
+		WebService.setUserName("wardcapsel");
 
 		MapUtils.createDefaultEventDispatcher(this, map);
 		//Read in the data from the txt file
@@ -89,10 +90,9 @@ public class LAK extends PApplet {
 		//This is the coloring of the countries according to LAK and EDM data
 		attendingCityMarkers = setAttendingCityMarkers(associations);
 		countryMarkers = setCountryMarkers(attendingCityMarkers);
-		associationMarkers = setAssociationMarkers(associations);
 		activeCountryMarkers = countryMarkers;
 		activeCityMarkers = setCityMarkers(attendingCityMarkers);
-		activeAssociationMarkers =  associationMarkers;
+		associationMarkers = setCityMarkers(attendingCityMarkers);
 	}
 
 	/**
@@ -100,15 +100,15 @@ public class LAK extends PApplet {
 	 */
 	public void draw() {
 		map.getMarkers().clear();
+		mapOverview.getMarkers().clear();
 		map.addMarkers(activeCountryMarkers);
+		mapOverview.addMarkers(activeCountryMarkers);
 		background(0);
 		if(map.getZoomLevel()>=4) {
-			map.addMarkers(activeAssociationMarkers);
-			for(CityMarker marker: activeCityMarkers){
-				map.addMarkers(marker);
-			}
+			map.addMarkers(activeCityMarkers);
 		}
 		map.draw();
+		mapOverview.draw();
 		if(this.compare){
 			CityMarker comp1 = compareMarkers.get(0);
 			CityMarker comp2 = compareMarkers.get(1);
@@ -131,41 +131,65 @@ public class LAK extends PApplet {
 			line(125,300,125,125);
 			line(450,300,450,125);
 			fill(128,138,135);
-			textSize(20);
+			textFont(new PFont(new Font("Champagne & Limousines", Font.BOLD, 30), true));
 			text(comp1.getCity().getName(), 150,100);
 			text(comp2.getCity().getName(), 475,100);
-			
 			pushStyle();
 			strokeWeight(20);
 			int max1 = Math.max(Math.max(comp1.getLAK2011(), comp1.getLAK2012()), Math.max(comp1.getEDM2011(), comp1.getEDM2012()));
 			int max2 = Math.max(Math.max(comp2.getLAK2011(), comp2.getLAK2012()), Math.max(comp2.getEDM2011(), comp2.getEDM2012()));
 			int max = Math.max(max1, max2);
 			double factor = 0;
-			if(max > 0) factor = 150/max;
-			stroke(255,0,0);
-			line(155, 300, 155, (float) (300-comp1.getLAK2011()*factor));
-			stroke(0,0,255);
-			line(195, 300, 195, (float) (300-comp1.getEDM2011()*factor));
-			stroke(255,0,0);
-			line(255, 300, 255, (float) (300-comp1.getLAK2012()*factor));
-			stroke(0,0,255);
-			line(295, 300, 295, (float) (300-comp1.getEDM2012()*factor));
-			stroke(255,0,0);
-			line(480, 300, 480, (float) (300-comp2.getLAK2011()*factor));
-			stroke(0,0,255);
-			line(520, 300, 520, (float) (300-comp2.getEDM2011()*factor));
-			stroke(255,0,0);
-			line(580, 300, 580, (float) (300-comp2.getLAK2012()*factor));
-			stroke(0,0,255);
-			line(620, 300, 620, (float) (300-comp2.getEDM2012()*factor));
+			if(max > 0) 
+				factor = 150/max;
+			if(comp1.getLAK2011()>0) {
+				stroke(255,0,0);        
+				fill(255,0,0);
+				rect(155, 293, 155, (float) (293-comp1.getLAK2011()*factor),1,1,0,0);
+			}
+			if(comp1.getEDM2011()>0) {
+				stroke(255,255,0);        
+				fill(255, 255, 0);
+				rect(195, 293, 195, (float) (293-comp1.getEDM2011()*factor),1,1,0,0);
+			}
+			if(comp1.getLAK2012()>0) {
+				stroke(255,0,0);        
+				fill(255,0,0);
+				rect(255, 293, 255, (float) (293-comp1.getLAK2012()*factor),1,1,0,0);
+			}	
+			if(comp1.getEDM2012()>0) {
+				stroke(255,255,0);        
+				fill(255, 255, 0);
+				rect(295, 293, 295, (float) (293-comp1.getEDM2012()*factor),1,1,0,0);
+			}
+			if(comp2.getLAK2011()>0) {
+				stroke(255,0,0);        
+				fill(255,0,0);
+				rect(480, 293, 480, (float) (293-comp2.getLAK2011()*factor),1,1,0,0);
+			}
+			if(comp2.getEDM2011()>0) {
+				stroke(255,255,0);        
+				fill(255, 255, 0);
+				rect(520, 293, 520, (float) (293-comp2.getEDM2011()*factor),1,1,0,0);
+			}
+			if(comp2.getLAK2012() >0) {
+				stroke(255,0,0);        
+				fill(255,0,0);
+				rect(580, 293, 580, (float) (293-comp2.getLAK2012()*factor),1,1,0,0);
+			}
+			if(comp2.getEDM2012() > 0) {
+				stroke(255,255,0);        
+				fill(255, 255, 0);
+				rect(620, 293, 620, (float) (293-comp2.getEDM2012()*factor),1,1,0,0);
+			}
 			popStyle();
-			textSize(15);
+			textFont(new PFont(new Font("Champagne & Limousines", Font.BOLD, 15), true));
 			text(max, 105,135);
-			text("#persons" , 105, 120);
+			text("#papers" , 105, 120);
 			text(max, 430,135);
-			text("#persons" , 430, 120);
+			text("#papers" , 430, 120);
 			
-			textSize(13);
+			textFont(new PFont(new Font("Champagne & Limousines", Font.BOLD, 13), true));
 			text("2011", (float) 175,325);
 			text("2012", (float) 275,325);
 			text("2011", (float) 500,325);
@@ -175,12 +199,10 @@ public class LAK extends PApplet {
 	}
 	
 	public void showCompareView(){
-//		activeCityMarkers.get(0).setCompareOn(true);
-//		activeCityMarkers.get(1).setCompareOn(true);
 		compareMarkers.clear();
-		for(CityMarker marker: activeCityMarkers){
-			if(marker.getCompareOn()){
-				compareMarkers.add(marker);
+		for(Marker marker: activeCityMarkers){
+			if(((CityMarker) marker).getCompareOn()){
+				compareMarkers.add((CityMarker) marker);
 			}
 		}
 		if(compareMarkers.size() > 1){
@@ -201,76 +223,65 @@ public class LAK extends PApplet {
 		List<Marker> subjectMarkers = new ArrayList<Marker>();
 		ArrayList<CityMarker> attendingSubjectCityMarkers = new ArrayList<CityMarker>();
 		List<Association> tmpAssociations = new ArrayList<Association>();
-		//TODO betere manier zoeken, maar voorlopig even zo GREET
-		HashMap<Association, List<Person>> associationEDM = new HashMap<Association, List<Person>>();
-		HashMap<Association, List<Person>> associationLAK = new HashMap<Association, List<Person>>();
+		HashMap<Association, List<Paper>> associationEDM = new HashMap<Association, List<Paper>>();
+		HashMap<Association, List<Paper>> associationLAK = new HashMap<Association, List<Paper>>();
 		for(Paper paper: papers)
 		{	
-			for(String topic: paper.getSubjects())
+			for(String topic: paper.getSubjects()) 
 			{
-				System.out.println("Topic: " + topic);
-				if(topic.equalsIgnoreCase(subject) || topic.contains((subject.toLowerCase())))
+				if(topic.equalsIgnoreCase(subject) || topic.contains((subject.toLowerCase()))) 
 				{
-					if(paper.wasForEDM2011() || paper.wasForEDM2012())
+					if(paper.wasForEDM2011() || paper.wasForEDM2012()) 
 					{
-						for(Person maker: paper.getMakers())
+						if(paper.getMakers().size() > 0)
 						{
-							Association association = maker.getAssociation();
-							if(!associationEDM.containsKey(association))
+							Association association = paper.getMakers().get(0).getAssociation();
+							if(!associationEDM.containsKey(association)) 
 							{
-								ArrayList<Person> tmp = new ArrayList<Person>();
-								tmp.add(maker);
+								ArrayList<Paper> tmp = new ArrayList<Paper>();
+								tmp.add(paper);
 								associationEDM.put(association, (tmp));
 							}
 							else
 							{
-								associationEDM.get(association).add(maker);
+								associationEDM.get(association).add(paper);
 							}
-								
 						}
-						
 					}
-					else if(paper.wasForLAK2011()||paper.wasForLAK2012())
+					else if(paper.wasForLAK2011()||paper.wasForLAK2012()) 
 					{
-						for(Person maker: paper.getMakers())
+						if(paper.getMakers().size() > 0)
 						{
-							Association association = maker.getAssociation();
-							if(!associationLAK.containsKey(association))
+							Association association = paper.getMakers().get(0).getAssociation();
+							if(!associationLAK.containsKey(association)) 
 							{
-								ArrayList<Person> tmp = new ArrayList<Person>();
-								tmp.add(maker);
+								ArrayList<Paper> tmp = new ArrayList<Paper>();
+								tmp.add(paper);
 								associationLAK.put(association, (tmp));
 							}
 							else
 							{
-								associationLAK.get(association).add(maker);
+								associationLAK.get(association).add(paper);
 							}
-								
 						}
 					}
 				}
 			}
 		}
-			
-			
-			for(Association association: associationEDM.keySet())
-			{
-				CityMarker marker = new CityMarker(association, associationLAK.get(association), associationEDM.get(association));
-				attendingSubjectCityMarkers.add(marker);
-				tmpAssociations.add(association);
-				associationLAK.remove(association);
-			}
-			for(Association association: associationLAK.keySet())
-			{
-				CityMarker marker = new CityMarker(association, associationLAK.get(association), associationEDM.get(association));
-				attendingSubjectCityMarkers.add(marker);
-				tmpAssociations.add(association);
-			}
-		    
+		for(Association association: associationEDM.keySet()) {
+			CityMarker marker = new CityMarker(association, associationLAK.get(association), associationEDM.get(association));
+			attendingSubjectCityMarkers.add(marker);
+			tmpAssociations.add(association);
+			associationLAK.remove(association);
+		}
+		for(Association association: associationLAK.keySet()) {
+			CityMarker marker = new CityMarker(association, associationLAK.get(association), associationEDM.get(association));
+			attendingSubjectCityMarkers.add(marker);
+			tmpAssociations.add(association);
+		}		    
 		activeCityMarkers = setCityMarkers(attendingSubjectCityMarkers);
 		subjectMarkers = setCountryMarkers(attendingSubjectCityMarkers);
 		activeCountryMarkers = subjectMarkers;
-		activeAssociationMarkers =  setAssociationMarkers(tmpAssociations);
 	}
 
 	/**
@@ -332,7 +343,6 @@ public class LAK extends PApplet {
 		getAssociationsAndAttendees(model, type);
 		getPapers(model,type);
 	}
-
 	
 	/**
 	 * Method to retrieve all associations and link the attendees to their association.
@@ -395,19 +405,14 @@ public class LAK extends PApplet {
 					String name = parts[0];
 					for(int i=1; i<parts.length;i++)
 						name = name + " " + parts[i];
-					for(City city: cities)
-					{
-						for(Person person: city.getAssociatedPeople())
-						{
+					for(City city: cities) {
+						for(Person person: city.getAssociatedPeople()) {
 							if(person.getName().equalsIgnoreCase(name))
-								makernames.add(person);
-								
+								makernames.add(person);		
 						}
 					}
 					System.out.println("maker: " + name);
 				}
-				
-				
 				StmtIterator subjects = thisElement.listProperties(DC.subject);
 				List<String> names = new ArrayList<String>();
 				while (subjects.hasNext()) {
@@ -432,8 +437,11 @@ public class LAK extends PApplet {
 	 * @return 
 	 */
 	private List<Marker> setCountryMarkers(ArrayList<CityMarker> attendingCityMarkers) {
+		int maximimum = 0;
 		List<Feature> countries = GeoJSONReader.loadData(this, "countries.geo.json");
 		List<Marker> countryMarkers = MapUtils.createSimpleMarkers(countries);
+		nbPapersMarkers = MapUtils.createSimpleMarkers(countries);
+		List<Integer> nbPapers = new ArrayList<Integer>();
 		for (Marker markerCountry : countryMarkers) {
 			String countryId = markerCountry.getId();
 			boolean hit = false;
@@ -442,32 +450,66 @@ public class LAK extends PApplet {
 			for (CityMarker marker : attendingCityMarkers) {
 				String country = marker.getCity().getCountry();
 				if (countryId.equals(country)) {
-					lak += marker.getLAKMembers().size();
-					edm += marker.getEDMMembers().size();
+					lak += marker.getLAKPapers().size();
+					edm += marker.getEDMPapers().size();
 					hit = true;
-					System.out.println("HIT: " + marker.getCity().getName() + " - " + marker.getLAKMembers().size() + " - " + marker.getEDMMembers().size());	
 				}
 			}
 			if (hit) {
-				int transparancy = (lak+edm)*10;
-				if (edm == 0) {
-					markerCountry.setColor(color(255, 0, 0, transparancy));
-				} else if (lak > edm*2) {
-					markerCountry.setColor(color(255, 151, 52, transparancy));
-				} else if (lak == 0) {
-					markerCountry.setColor(color(0, 0, 255, transparancy));
-				} else if (2*lak < edm) {
-					markerCountry.setColor(color(51, 191, 69, transparancy));
-				} else {
-					markerCountry.setColor(color(255, 247, 0, transparancy));
+				int transparancy = (lak+edm);
+				if(transparancy > maximimum)
+					maximimum = transparancy;
+				nbPapers.add(transparancy);
+				if(edm==0 && lak!=0){
+					markerCountry.setColor(color(255,0,0/*, transparancy*/));
+					
+				}
+				else if(edm!=0 && lak==0){
+					markerCountry.setColor(color(255,255,0/*, transparancy*/));
+				}
+				else if(lak!=0 && edm!=0){
+					double lakD = new Double(lak);
+					double edmD = new Double(edm);
+					double ratio = (lakD/edmD)/2;
+					if(ratio>1)
+					{
+						ratio = ratio/10;
+					}
+					int red = 255;
+					int green = (int) Math.round(ratio*255);
+					green = Math.max(green, 0);
+					green = Math.min(green, 255);
+					int blue = 0;
+					markerCountry.setColor(color(red, green, blue/*, transparancy*/));
+				}
+				else {
+					markerCountry.setColor(color(255, 255, 255, 0));
 				}
 				System.out.println("LAK: " + lak);
 				System.out.println("EDM: " + edm);
 				System.out.println("*******" + countryId);
 			} else {
 				markerCountry.setColor(color(255, 255, 255, 0));
+				nbPapers.add(0);
+				
 			}
 		}
+		for(int i = 0; i <nbPapers.size(); i++)
+		{
+			if(nbPapers.get(i)==maximimum)
+				nbPapersMarkers.get(i).setColor(color(73, 157, 72));
+			else if(nbPapers.get(i)==0)
+				nbPapersMarkers.get(i).setColor(color(255, 255, 255,0));
+			else
+			{
+					Double ratio = (double) (((double) nbPapers.get(i)/(double) maximimum)*700);
+					Integer transparancy = (int) Math.round(ratio);
+					nbPapersMarkers.get(i).setColor(color(73, 157, 72,transparancy));
+			}
+		}
+		
+		
+		
 		return countryMarkers;
 	}
 	
@@ -478,40 +520,36 @@ public class LAK extends PApplet {
 	 */
 	private ArrayList<CityMarker> setAttendingCityMarkers(List<Association> associations) {
 		ArrayList<CityMarker> attendingCityMarkers = new ArrayList<CityMarker>();
-		for(Association association : associations) {
-			CityMarker marker = new CityMarker(association, association.getCity().getLAKmembers(), association.getCity().getEDMmembers());
+		for(Paper paper : papers) {
+			if(paper.getMakers().size() > 0){
+			Association association = paper.getMakers().get(0).getAssociation();
+			CityMarker marker;
+			if(paper.wasForEDM2011() || paper.wasForEDM2012()){
+				ArrayList<Paper> edmpapers = new ArrayList<Paper>();
+				edmpapers.add(paper);
+				marker = new CityMarker(association, null, edmpapers);
+			}
+			else{
+				ArrayList<Paper> lakpapers = new ArrayList<Paper>();
+				lakpapers.add(paper);
+				marker = new CityMarker(association, lakpapers, null);
+			}
 			attendingCityMarkers.add(marker);	
+			}
 		}
 		return attendingCityMarkers;
 	}
 	
-	public List<Marker> setAssociationMarkers(List<Association> associations) {
-		List<Marker> associationMarkers = new ArrayList<Marker>();
-		for(Association association : associations) {
-			if(association.isAttendingAConference()) {
-				Location location = association.getCity().getLocation();
-				if(location!=null) {
-					AssociationMarker associationMarker = new AssociationMarker(location, association.getCity());
-					associationMarkers.add(associationMarker);
-				}
-			}
-		}
-		return associationMarkers;
-	}
-	
-	public List<CityMarker> setCityMarkers(List<CityMarker> markers){
-		ArrayList<CityMarker> cityMarkers = new ArrayList<CityMarker>();
+	public List<Marker> setCityMarkers(List<CityMarker> markers){
+		List<Marker> cityMarkers = new ArrayList<Marker>();
 		for (CityMarker marker: markers){
 			boolean present = false;
-			for(CityMarker mark: cityMarkers){
-				if(marker.getCity().getName().equals(mark.getCity().getName())){
+			for(Marker mark: cityMarkers){
+				if(marker.getCity().getName().equals(((CityMarker) mark).getCity().getName())){
 					present = true;
-//					System.out.println("***********************************************************");
-//					System.out.println("existingCtiy: " + mark.getCity().getName());
-//					System.out.println("newCity: " + marker.getAssociations().get(0).getName());
-					mark.addAssociations(marker.getAssociations());
-					mark.addLAKMembers(marker.getLAKMembers());
-					mark.addEDMMembers(marker.getEDMMembers());
+					((CityMarker) mark).addAssociations(marker.getAssociations());
+					((CityMarker) mark).addLAKPapers(marker.getLAKPapers());
+					((CityMarker) mark).addEDMPapers(marker.getEDMPapers());
 				}
 			}
 			if(!present){
@@ -523,10 +561,8 @@ public class LAK extends PApplet {
 
 	public void mouseMoved() {
 		List<Marker> hitMarkers = map.getHitMarker(mouseX, mouseY);
-//		if(hitMarker.getClass() == AssociationMarker.class){
 		boolean hit = false;
 		for(Marker hitMarker: hitMarkers){
-//			System.out.println(hitMarker.getId());
 			if(hitMarker.getClass() == CityMarker.class){
 				hitMarker.setSelected(true);
 				hit = true;
@@ -543,74 +579,21 @@ public class LAK extends PApplet {
 				marker.setSelected(false);
 			}
 		}
-//			if (hitMarker != null) {
-//				// Select current marker
-//				hitMarker.setSelected(true);
-//				for (Marker marker : map.getMarkers()) {
-//					if (marker != hitMarker)
-//						marker.setSelected(false);
-//				}
-//			} 
-//			else {
-//				// Deselect all other markers
-//				for (Marker marker : map.getMarkers()) {
-//					marker.setSelected(false);
-//				}
-//			}
-//		}
-//		Marker selectedMarker = null;
-//		double distance = 5;
-//		for(AssociationMarker marker: activeAssociationMarkers){
-//			double dis = marker.getDistance(mouseX, mouseY);
-//			if(dis<200) {
-//				System.out.println(dis + "          " + marker.getId());
-//			}
-//			if( dis < 5){
-//				if(dis < distance){
-//					selectedMarker = marker;
-//					distance = dis;
-//				}
-//			}
-//		}
-//		if(selectedMarker != null){
-//			selectedMarker.setSelected(true);
-//			for (Marker marker : map.getMarkers()) {
-//				if (marker != selectedMarker)
-//					marker.setSelected(false);
-//			}
-//		}
-//	}
 	}
 	
 	public void mouseClicked(){
-//		System.out.println(mouseX + "      " + mouseY);
 		if(crossOver()){
 			this.compare = false;
-			for(CityMarker marker: activeCityMarkers){
-				marker.setCompareOn(false);
+			for(Marker marker: activeCityMarkers){
+				((CityMarker) marker).setCompareOn(false);
 			}
 		}
-//		boolean hit = false;
-		for(CityMarker marker: activeCityMarkers){
-			marker.mousePressed(mouseX,mouseY,marker.getScreenPosition(map));
+		for(Marker marker: activeCityMarkers){
+			((CityMarker) marker).mousePressed(mouseX,mouseY,((CityMarker) marker).getScreenPosition(map));
 			if(marker.isSelected()){
-//				hit = true;
-				marker.drawCompareBox(true);
-//				System.out.println(marker.getScreenPosition(map).x);
-//				System.out.println(marker.getScreenPosition(map).y);
-//				System.out.println("Clicked " + marker.getId());				
-//				for(CityMarker mark: activeCityMarkers){
-//					if(!mark.getCity().getName().equals(marker.getCity().getName())){
-//						mark.drawCompareBox(false);
-//					}
-//				}
+				((CityMarker) marker).drawCompareBox(true);
 			}
 		}
-//		if(!hit){		
-//			for(CityMarker mark: activeCityMarkers){
-//				mark.drawCompareBox(false);
-//			}
-//		}
 	}
 	
 	public boolean crossOver(){
@@ -642,7 +625,13 @@ public class LAK extends PApplet {
 	 */
 	public void reset() {
 		activeCountryMarkers = countryMarkers;
-		activeAssociationMarkers =  associationMarkers;
+		activeCityMarkers =  associationMarkers;
+		
+	}
+
+	public void changeMarkers() {
+		activeCountryMarkers = nbPapersMarkers;
+		activeCityMarkers =  associationMarkers;
 		
 	}
 }
